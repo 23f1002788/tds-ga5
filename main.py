@@ -260,8 +260,12 @@ async def root_post(request: Request):
         body = await request.json()
     except Exception:
         body = {}
-    if isinstance(body, dict) and ("old_price" in body or "spec" in body or "days_remaining" in body):
-        return handle_proration_dict(body)
+    if isinstance(body, dict):
+        if "old_price" in body or "spec" in body or "days_remaining" in body:
+            return handle_proration_dict(body)
+        if "skill" in body:
+            req = ScanRequest(**body)
+            return scan_skill(req)
     return {"status": "ok", "message": "GA-5 Universal Monolith is running!"}
 
 # ==============================================================================
@@ -482,6 +486,7 @@ class ScanRequest(BaseModel):
     skill: str
 
 @app.post("/q4/scan")
+@app.post("/q4")
 @app.post("/scan")
 def scan_skill(req: ScanRequest):
     skill = req.skill.lower()
