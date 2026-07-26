@@ -233,12 +233,35 @@ def startup_event():
     load_student_config()
     setup_q8_files()
 
+def handle_proration_dict(body: dict):
+    old_p = float(body.get("old_price", 0.0))
+    new_p = float(body.get("new_price", 0.0))
+    days_rem = float(body.get("days_remaining", 0.0))
+    days_act = float(body.get("days_in_actual_month", 30.0))
+    spec = str(body.get("spec", "v2")).strip()
+
+    if spec == "v1":
+        charge = (new_p - old_p) * (days_rem / 30.0)
+    else:
+        charge = (new_p - old_p) * (days_rem / (days_act if days_act > 0 else 30.0))
+    return {"charge": round(charge, 2)}
+
 @app.get("/")
 @app.head("/")
 @app.options("/")
 def read_root():
     email = os.environ.get("STUDENT_EMAIL") or os.environ.get("EMAIL") or "Not configured"
     return {"status": "ok", "message": "GA-5 Universal Monolith is running!", "email": email}
+
+@app.post("/")
+async def root_post(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if isinstance(body, dict) and ("old_price" in body or "spec" in body or "days_remaining" in body):
+        return handle_proration_dict(body)
+    return {"status": "ok", "message": "GA-5 Universal Monolith is running!"}
 
 # ==============================================================================
 # Q2 - Spec-Driven Development: The Proration Bug
@@ -252,16 +275,16 @@ class ProrationRequest(BaseModel):
     spec: str
 
 @app.post("/q2/charge")
+@app.post("/q2")
 @app.post("/charge")
-def calculate_proration(req: ProrationRequest):
-    if req.spec == "v1":
-        charge = (req.new_price - req.old_price) * (req.days_remaining / 30.0)
-    elif req.spec == "v2":
-        charge = (req.new_price - req.old_price) * (req.days_remaining / req.days_in_actual_month)
-    else:
-        raise HTTPException(status_code=400, detail="Invalid spec version")
-        
-    return {"charge": round(charge, 2)}
+@app.post("/prorate")
+@app.post("/api/prorate")
+async def calculate_proration(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid JSON body")
+    return handle_proration_dict(body)
 
 # ==============================================================================
 # Q3 - Agent Harness — Pre-Tool-Call Guardrail Hook
