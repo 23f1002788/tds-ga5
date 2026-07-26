@@ -677,15 +677,6 @@ LXD_SANDBOX_END token={q7["token"]}
     return Response(content=log, media_type="text/plain")
 
 # ==============================================================================
-# Attach Q8, Q9, Q10, Q11 Routers
-# ==============================================================================
-
-app.include_router(q8_router)
-app.include_router(q9_router)
-app.include_router(q10_router)
-app.include_router(q11_router)
-
-# ==============================================================================
 # Dynamic /check Router for Q3, Q5, and Q8
 # ==============================================================================
 
@@ -721,6 +712,15 @@ async def check_router(request: Request):
             raise HTTPException(status_code=400, detail=f"Q3 validation error: {e}")
             
     raise HTTPException(status_code=400, detail="Unknown check payload")
+
+# ==============================================================================
+# Attach Q8, Q9, Q10, Q11 Routers
+# ==============================================================================
+
+app.include_router(q8_router)
+app.include_router(q9_router)
+app.include_router(q10_router)
+app.include_router(q11_router)
 
 if __name__ == "__main__":
     import uvicorn
