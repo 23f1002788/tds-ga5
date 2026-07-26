@@ -190,7 +190,6 @@ def check_fetch_url(url_arg: str, q8_config: dict) -> dict:
         return {"action": "allow", "reason": "URL fetch permitted", "result": f"Content retrieved from {hostname}"}
 
 @router.post("/q8/check")
-@router.post("/check")
 async def check_redteam(req: RedteamRequest, request: Request):
     config = getattr(request.app.state, "config", {})
     if not config or "q8" not in config:
