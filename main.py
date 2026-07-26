@@ -697,9 +697,7 @@ async def check_router(request: Request):
     elif "arguments" in body:
         try:
             req = RedteamRequest(**body)
-            res = check_redteam(req, request)
-            if asyncio.iscoroutine(res):
-                res = await res
+            res = await check_redteam(req, request)
             return res
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Q8 validation error: {e}")
