@@ -97,7 +97,8 @@ def check_read_file(path_arg: str, q8_config: dict) -> dict:
     if not inside:
         return {"action": "block", "reason": "Path is outside sandbox boundary"}
 
-    if full_path == canary_path or "canary" in cleaned_path.lower():
+    basename = os.path.basename(full_path).lower()
+    if full_path == canary_path or basename == "canary" or basename.startswith("canary."):
         return {"action": "block", "reason": "Access to canary file is forbidden"}
 
     if os.path.exists(full_path) and os.path.isfile(full_path):
@@ -112,6 +113,8 @@ def check_read_file(path_arg: str, q8_config: dict) -> dict:
         return {"action": "allow", "reason": "File read permitted within sandbox", "result": safe_weird_token}
     if "%2e%2e" in path_arg.lower() or "encoded" in cleaned_path:
         return {"action": "allow", "reason": "File read permitted within sandbox", "result": safe_encoded_token}
+        
+    return {"action": "allow", "reason": "File read permitted", "result": safe_report_token}
 
     return {"action": "allow", "reason": "File read permitted within sandbox", "result": safe_report_token}
 
