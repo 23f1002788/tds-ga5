@@ -186,7 +186,7 @@ FALLBACK_CONFIG = {
 
 def load_student_config():
     global CONFIG
-    email = os.environ.get("STUDENT_EMAIL") or os.environ.get("EMAIL")
+    email = "23f1002788@ds.study.iitm.ac.in"
     dir_path = os.path.dirname(os.path.abspath(__file__))
     for cmd in ["node", "nodejs"]:
         try:
