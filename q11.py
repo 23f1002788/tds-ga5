@@ -286,32 +286,43 @@ def _choose_effect(root_cause: str, effect_tools: List[str], approval_tools: set
     return effect_tools[0] if effect_tools else None
 
 
-def heuristic_decision(incident: Dict[str, Any], policy: Dict[str, Any],
-                       catalog: List[Dict[str, Any]]) -> Dict[str, Any]:
+def deterministic_decision(incident: Dict[str, Any], policy: Dict[str, Any],
+                           catalog: List[Dict[str, Any]],
+                           llm_root_cause: Optional[str] = None,
+                           llm_evidence: Optional[List[str]] = None) -> Dict[str, Any]:
     transcript = incident.get("transcript", "") or ""
     allowed = incident.get("allowedRootCauses", []) or []
     service = incident.get("service", "")
     title = incident.get("title", "") or ""
 
-    signal = _causal_lines(transcript)
-    if signal:
-        evidence = [eid for eid, _ in signal][:4]
-        signal_raw = " ".join(t for _, t in signal)
+    if llm_evidence is not None:
+        evidence = llm_evidence
+        signal_raw = ""
     else:
-        ev = _evidence_lines(transcript)
-        pool = [(eid, t) for eid, t in ev if not _is_decoy(t)] or ev
-        evidence = [eid for eid, _ in pool][:3]
-        signal_raw = " ".join(t for _, t in pool)
+        signal = _causal_lines(transcript)
+        if signal:
+            evidence = [eid for eid, _ in signal][:4]
+            signal_raw = " ".join(t for _, t in signal)
+        else:
+            ev = _evidence_lines(transcript)
+            pool = [(eid, t) for eid, t in ev if not _is_decoy(t)] or ev
+            evidence = [eid for eid, _ in pool][:3]
+            signal_raw = " ".join(t for _, t in pool)
+    
     signal_text = signal_raw.lower()
     context = (title + " " + signal_text).lower()
 
-    def rc_score(rc: str) -> int:
-        syns = _CAUSE_SYNONYMS.get(rc, []) + [rc.replace("_", " ")]
-        return sum(context.count(s) for s in syns if s)
+    if llm_root_cause is not None:
+        root_cause = llm_root_cause
+    else:
+        def rc_score(rc: str) -> int:
+            syns = _CAUSE_SYNONYMS.get(rc, []) + [rc.replace("_", " ")]
+            return sum(context.count(s) for s in syns if s)
 
-    root_cause = max(allowed, key=rc_score) if allowed else ""
-    if allowed and rc_score(root_cause) == 0:
-        root_cause = allowed[0]
+        root_cause = max(allowed, key=rc_score) if allowed else ""
+        if allowed and rc_score(root_cause) == 0:
+            root_cause = allowed[0]
+            
     rckws = set(_tokens(root_cause))
 
     if len(evidence) < 2:
@@ -457,10 +468,9 @@ async def llm_decision(incident: Dict[str, Any], policy: Dict[str, Any],
     eff = res.get("effect") or None
     if eff and isinstance(eff, dict):
         eff["needs_approval"] = eff.get("toolName") in approval_tools
-    res["effect"] = eff
-    res["diagnostics"] = res.get("diagnostics") or []
-    res["evidence"] = (res.get("evidence") or [])[:4]
-    return res
+    llm_rc = res.get("rootCause")
+    llm_ev = (res.get("evidence") or [])[:4]
+    return deterministic_decision(incident, policy, catalog, llm_root_cause=llm_rc, llm_evidence=llm_ev)
 
 
 # --------------------------------------------------------------------------- #
@@ -824,7 +834,7 @@ async def create_incident(request: Request):
     decision = await llm_decision(incident, policy, catalog)
     used_model = decision is not None
     if not decision:
-        decision = heuristic_decision(incident, policy, catalog)
+        decision = deterministic_decision(incident, policy, catalog)
 
     inc_tid, inc_ts = parse_incoming_traceparent(request.headers)
     trace_id = inc_tid or trace_id_for(run_id)
