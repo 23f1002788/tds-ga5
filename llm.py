@@ -4,17 +4,13 @@ import re
 import asyncio
 from openai import AsyncOpenAI
 
-OPENROUTER_API_KEY = os.environ.get(
-    "OPENROUTER_API_KEY"
-)
-OPENROUTER_MODEL = os.environ.get(
-    "OPENROUTER_MODEL",
-    "google/gemini-2.0-flash-lite-preview-02-05:free"
-)
+API_KEY = os.environ.get("AIPIPE_KEY") or os.environ.get("OPENROUTER_API_KEY")
+BASE_URL = os.environ.get("AIPIPE_BASE", "https://aipipe.org/openai/v1") if os.environ.get("AIPIPE_KEY") else "https://openrouter.ai/api/v1"
+MODEL = os.environ.get("AIPIPE_MODEL", "gpt-4o") if os.environ.get("AIPIPE_KEY") else os.environ.get("OPENROUTER_MODEL", "google/gemini-2.0-flash-lite-preview-02-05:free")
 
 _client = AsyncOpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_API_KEY or "dummy_key",
+    base_url=BASE_URL,
+    api_key=API_KEY or "dummy_key",
 )
 
 async def call_llm_json(prompt: str, timeout: float = 15.0) -> dict:
@@ -22,12 +18,12 @@ async def call_llm_json(prompt: str, timeout: float = 15.0) -> dict:
     Calls OpenRouter LLM and parses JSON output.
     Returns parsed dict or list.
     """
-    if not OPENROUTER_API_KEY:
+    if not API_KEY:
         return {}
     try:
         response = await asyncio.wait_for(
             _client.chat.completions.create(
-                model=OPENROUTER_MODEL,
+                model=MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=2048,
