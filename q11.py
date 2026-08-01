@@ -53,7 +53,7 @@ DEFAULT_APPROVAL_TOOLS = ["rollback_deployment", "disable_feature"]
 # consistent approval chain, run the effect, and emit the whole trace + logs in
 # the single first response. Set Q11_SELF_COMPLETE=0 to exercise the receipt
 # state machine turn-by-turn (used by the behavioural tests).
-SELF_COMPLETE = os.environ.get("Q11_SELF_COMPLETE", "1") != "0"
+SELF_COMPLETE = False
 
 # Numeric OTLP SpanKind
 KIND_INTERNAL, KIND_SERVER, KIND_CLIENT = 1, 2, 3
