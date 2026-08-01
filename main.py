@@ -646,7 +646,7 @@ async def mcp_handler(request: Request, x_exam_challenge: Optional[str] = Header
     elif method == "tools/call":
         name = body.get("params", {}).get("name")
         if name == "solve_challenge":
-            email = (os.environ.get("STUDENT_EMAIL") or os.environ.get("EMAIL") or "").strip().lower()
+            email = "23f1002788@ds.study.iitm.ac.in"
             challenge = x_exam_challenge or ""
             h = hashlib.sha256(f"{challenge}:{email}".encode('utf-8')).hexdigest()[:16]
             return {
