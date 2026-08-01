@@ -425,7 +425,7 @@ def heuristic_decision(incident: Dict[str, Any], policy: Dict[str, Any],
 
 async def llm_decision(incident: Dict[str, Any], policy: Dict[str, Any],
                        catalog: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    if not llm or not getattr(llm, "available", lambda: False)():
+    if not llm:
         return None
     allowed = incident.get("allowedRootCauses", []) or []
     tool_brief = [{"name": t.get("name"), "description": t.get("description", ""),
